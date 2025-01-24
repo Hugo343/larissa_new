@@ -1,9 +1,12 @@
+
 <?php
 session_start();
 require_once 'config.php';
 
 $mode = isset($_GET['mode']) ? $_GET['mode'] : 'login';
-
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($mode === 'login') {
         $username = $_POST['username'];
@@ -16,7 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            echo json_encode(['success' => true, 'redirect' => 'index.php']);
+            $_SESSION['is_admin'] = $user['is_admin'];
+            
+            if ($user['is_admin']) {
+                echo json_encode(['success' => true, 'redirect' => 'admin.php']);
+            } else {
+                echo json_encode(['success' => true, 'redirect' => 'index.php']);
+            }
             exit;
         } else {
             echo json_encode(['success' => false, 'error' => 'Invalid username or password']);
@@ -312,7 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="auth-container <?php echo $mode === 'register' ? 'register-mode' : ''; ?>">
-        <div class="auth-image" style="background-image: url('images/dash-2.png')">
+        <div class="auth-image" style="background-image: url('images/dash-2')">
             <div class="floating-icon icon-1"><i class="fas fa-spa"></i></div>
             <div class="floating-icon icon-2"><i class="fas fa-pump-soap"></i></div>
             <div class="floating-icon icon-3"><i class="fas fa-hand-sparkles"></i></div>
