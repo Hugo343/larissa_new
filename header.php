@@ -7,7 +7,6 @@
             <ul class="nav-links">
                 <li><a href="index.php">Home</a></li>
                 <li><a href="services.php">Services</a></li>
-                <li><a href="products.php">Products</a></li>
                 <li><a href="booking.php">Book Now</a></li>
                 <li><a href="#contact">Contact  |</a></li>
                 <?php if (isset($_SESSION['user_id'])): ?>
