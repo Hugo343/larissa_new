@@ -1,0 +1,60 @@
+/*! tailwindcss v4.0.0 | MIT License | https://tailwindcss.com */
+@tailwind base;
+@tailwind components;
+.relative {
+  position: relative;
+}
+.container {
+  width: 100%;
+}
+.mx-auto {
+  margin-inline: auto;
+}
+.block {
+  display: block;
+}
+.flex {
+  display: flex;
+}
+.hidden {
+  display: none;
+}
+.inline-block {
+  display: inline-block;
+}
+.table {
+  display: table;
+}
+.w-full {
+  width: 100%;
+}
+.appearance-none {
+  appearance: none;
+}
+.items-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.border {
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+}
+.text-center {
+  text-align: center;
+}
+.align-baseline {
+  vertical-align: baseline;
+}
+.focus\:outline-none {
+  &:focus {
+    --tw-outline-style: none;
+    outline-style: none;
+  }
+}
+@property --tw-border-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
