@@ -26,7 +26,7 @@ if (!$service) {
     <title><?php echo htmlspecialchars($service['name']); ?> - Larissa Salon Studio</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
+    <link href="styles/main.css" rel="stylesheet">
 </head>
 <body>
     <?php include 'header.php'; ?>
