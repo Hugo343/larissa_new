@@ -2,7 +2,7 @@
     <div class="container">
         <nav class="navbar">
             <a href="index.php" class="logo">
-                <img src="images/.png" alt="Larissa Salon Studio" class="logo-image">
+                <img src="images/logo1.png" alt="Larissa Salon Studio" class="logo-image">
             </a>
             <ul class="nav-links">
                 <li><a href="index.php">Home</a></li>
