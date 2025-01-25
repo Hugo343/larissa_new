@@ -3,7 +3,7 @@ session_start();
 require_once 'config.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: auth.php');
     exit();
 }
 
@@ -21,7 +21,7 @@ if (isset($_GET['service_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $serviceId = $_POST['service_id'];
-    $bookingDate = $_POST['booking_date'];
+    $bookingDate = $_POSpT['booking_date'];
     $bookingTime = $_POST['booking_time'];
 
     $stmt = $pdo->prepare("INSERT INTO appointments (user_id, service_id, appointment_date, appointment_time) VALUES (?, ?, ?, ?)");
