@@ -33,7 +33,7 @@ foreach ($services as $service) {
 <body>
     <?php include 'header.php'; ?>
 
-    <section class="page-header" style="background-image: url('https://source.unsplash.com/1600x900/?beauty,salon');">
+    <section class="page-header" style="background-image: url('images/services-header.jpg');">
         <div class="container">
             <h1>Our Services</h1>
         </div>
@@ -48,7 +48,7 @@ foreach ($services as $service) {
                         <?php if (isset($servicesByCategory[$category['id']])): ?>
                             <?php foreach (array_slice($servicesByCategory[$category['id']], 0, 3) as $service): ?>
                                 <div class="service-card">
-                                    <img src="https://source.unsplash.com/400x300/?beauty,salon,<?php echo urlencode($service['name']); ?>" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
+                                    <img src="images/services/<?php echo $service['id']; ?>.jpeg" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
                                     <h3><?php echo htmlspecialchars($service['name']); ?></h3>
                                     <p><?php echo htmlspecialchars(substr($service['description'], 0, 100)) . '...'; ?></p>
                                     <p><strong>Rp <?php echo number_format($service['price'], 0, ',', '.'); ?></strong></p>
@@ -72,3 +72,4 @@ foreach ($services as $service) {
     <script src="script.js"></script>
 </body>
 </html>
+

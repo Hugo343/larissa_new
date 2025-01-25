@@ -43,7 +43,7 @@ $specialPackages = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="services-grid">
                 <?php foreach ($featuredServices as $service): ?>
                     <div class="service-card" data-aos="fade-up">
-                        <img src="https://source.unsplash.com/400x300/?beauty,salon,<?php echo urlencode($service['name']); ?>" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
+                        <img src="images/services/<?php echo $service['id']; ?>.jpeg" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
                         <h3><?php echo htmlspecialchars($service['name']); ?></h3>
                         <p><?php echo htmlspecialchars(substr($service['description'], 0, 100)) . '...'; ?></p>
                         <p><strong>Rp <?php echo number_format($service['price'], 0, ',', '.'); ?></strong></p>
@@ -63,7 +63,7 @@ $specialPackages = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="package-grid">
                 <?php foreach ($specialPackages as $package): ?>
                     <div class="package-card" data-aos="fade-up">
-                        <img src="https://source.unsplash.com/400x300/?beauty,package,<?php echo urlencode($package['name']); ?>" alt="<?php echo htmlspecialchars($package['name']); ?>" class="package-image">
+                        <img src="images/services/<?php echo $package['id']; ?>.jpeg" alt="<?php echo htmlspecialchars($package['name']); ?>" class="package-image">
                         <h3><?php echo htmlspecialchars($package['name']); ?></h3>
                         <p><?php echo htmlspecialchars(substr($package['description'], 0, 100)) . '...'; ?></p>
                         <p><strong>Rp <?php echo number_format($package['price'], 0, ',', '.'); ?></strong></p>
@@ -84,3 +84,4 @@ $specialPackages = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script src="script.js"></script>
 </body>
 </html>
+

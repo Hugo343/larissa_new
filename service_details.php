@@ -40,7 +40,7 @@ if (!$service) {
     <section class="service-details">
         <div class="container">
             <div class="service-content" data-aos="fade-up">
-                <img src="images/services/<?php echo $service['id']; ?>.jpg" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
+                <img src="images/services/<?php echo $service['id']; ?>.jpeg" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
                 <div class="service-info">
                     <h2><?php echo htmlspecialchars($service['name']); ?></h2>
                     <p><?php echo htmlspecialchars($service['description']); ?></p>
@@ -59,3 +59,4 @@ if (!$service) {
     <script src="script.js"></script>
 </body>
 </html>
+
