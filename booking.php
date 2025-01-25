@@ -19,9 +19,11 @@ if (isset($_GET['service_id'])) {
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+$successMessage = $errorMessage = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $serviceId = $_POST['service_id'];
-    $bookingDate = $_POSpT['booking_date'];
+    $bookingDate = $_POST['booking_date'];
     $bookingTime = $_POST['booking_time'];
 
     $stmt = $pdo->prepare("INSERT INTO appointments (user_id, service_id, appointment_date, appointment_time) VALUES (?, ?, ?, ?)");
@@ -48,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php include 'header.php'; ?>
 
-    <section class="page-header">
+    <section class="page-header" style="background-image: url('images/booking-header.jpeg');">
         <div class="container">
             <h1>Book an Appointment</h1>
         </div>
@@ -56,21 +58,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <section class="booking-form">
         <div class="container">
-            <?php if (isset($successMessage)): ?>
+            <?php if ($successMessage): ?>
                 <div class="alert alert-success" data-aos="fade-up"><?php echo $successMessage; ?></div>
             <?php endif; ?>
-            <?php if (isset($errorMessage)): ?>
+            <?php if ($errorMessage): ?>
                 <div class="alert alert-error" data-aos="fade-up"><?php echo $errorMessage; ?></div>
             <?php endif; ?>
             <form action="booking.php" method="POST" data-aos="fade-up">
-                <?php if (isset($service)): ?>
-                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                    <div class="form-group">
+                <div class="form-group">
+                    <?php if (isset($service)): ?>
+                        <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
                         <label for="service">Selected Service:</label>
                         <input type="text" id="service" value="<?php echo htmlspecialchars($service['name']); ?>" readonly>
-                    </div>
-                <?php else: ?>
-                    <div class="form-group">
+                    <?php else: ?>
                         <label for="service_id">Select Service:</label>
                         <select name="service_id" id="service_id" required>
                             <option value="">Choose a service</option>
@@ -78,8 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <option value="<?php echo $service['id']; ?>"><?php echo htmlspecialchars($service['name']); ?> - Rp <?php echo number_format($service['price'], 0, ',', '.'); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
                 <div class="form-group">
                     <label for="booking_date">Date:</label>
                     <input type="date" id="booking_date" name="booking_date" required>
@@ -97,6 +97,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="script.js"></script>
+    <script>
+        $(document).ready(function() {
+            AOS.init({
+                duration: 1000,
+                once: true
+            });
+
+            // Set minimum date for booking
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('booking_date').setAttribute('min', today);
+
+            // Validate form submission
+            $('form').on('submit', function(e) {
+                var serviceId = $('#service_id').val();
+                var bookingDate = $('#booking_date').val();
+                var bookingTime = $('#booking_time').val();
+
+                if (!serviceId || !bookingDate || !bookingTime) {
+                    e.preventDefault();
+                    alert('Please fill in all fields');
+                    return false;
+                }
+
+                var selectedDateTime = new Date(bookingDate + 'T' + bookingTime);
+                var now = new Date();
+
+                if (selectedDateTime <= now) {
+                    e.preventDefault();
+                    alert('Please select a future date and time');
+                    return false;
+                }
+
+                var hour = selectedDateTime.getHours();
+                if (hour < 10 || hour >= 19) {
+                    e.preventDefault();
+                    alert('Please select a time between 10:00 AM and 7:00 PM');
+                    return false;
+                }
+            });
+        });
+    </script>
 </body>
 </html>
