@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php include 'header.php'; ?>
 
-    <section class="page-header" style="background-image: url('images/booking-header.jpeg');">
+    <section class="page-header" style="background-image: url('images/test.jpg');">
         <div class="container">
             <h1>Book an Appointment</h1>
         </div>
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Validate form submission
             $('form').on('submit', function(e) {
-                var serviceId = $('#service_id').val();
+                var serviceId = $('#service_id').val() || $('input[name="service_id"]').val();
                 var bookingDate = $('#booking_date').val();
                 var bookingTime = $('#booking_time').val();
 
