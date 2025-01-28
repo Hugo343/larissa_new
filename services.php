@@ -33,7 +33,7 @@ foreach ($services as $service) {
 <body>
     <?php include 'header.php'; ?>
 
-    <section class="page-header" style="background-image: url('images/services-header.jpg');">
+    <section class="page-header" style="background-image: url('images/spa.jpeg');">
         <div class="container">
             <h1>Our Services</h1>
         </div>
