@@ -2,7 +2,7 @@
     <div class="container">
         <div class="footer-grid">
             <div class="footer-section">
-                <img src="images/logo.png" alt="Larissa Salon Studio" class="logo">
+                <img src="images/logo1.png" alt="Larissa Salon Studio" class="logo-image">
                 <p>"Kecantikan Anda adalah Prioritas Kami"</p>
                 <div class="social-icons">
                     <a href="https://instagram.com/larissasalonstudio" target="_blank"><i class="fab fa-instagram"></i></a>

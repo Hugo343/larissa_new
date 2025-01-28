@@ -20,6 +20,14 @@ if (!$category) {
 $stmt = $pdo->prepare("SELECT * FROM services WHERE category_id = ?");
 $stmt->execute([$categoryId]);
 $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+function getCategoryImagePath($categoryId) {
+    $imagePath = "images/category/{$categoryId}.jpeg"; // Assuming JPG format
+    if (file_exists($imagePath)) {
+        return $imagePath;
+    }
+    return "images/category/1.jpeg"; // Default image if category image doesn't exist
+}
 ?>
 
 <!DOCTYPE html>
@@ -35,7 +43,7 @@ $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body>
     <?php include 'header.php'; ?>
 
-    <section class="page-header" style="background-image: url('https://source.unsplash.com/1600x900/?beauty,salon,<?php echo urlencode($category['name']); ?>');">
+    <section class="page-header" style="background-image: url('<?php echo getCategoryImagePath($category['id']); ?>');">
         <div class="container">
             <h1><?php echo htmlspecialchars($category['name']); ?></h1>
         </div>
@@ -46,7 +54,7 @@ $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="services-grid">
                 <?php foreach ($services as $service): ?>
                     <div class="service-card" data-aos="fade-up">
-                        <img src="https://source.unsplash.com/400x300/?beauty,salon,<?php echo urlencode($service['name']); ?>" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
+                        <img src="images/services/<?php echo $service['id']; ?>.jpeg" alt="<?php echo htmlspecialchars($service['name']); ?>" class="service-image">
                         <h3><?php echo htmlspecialchars($service['name']); ?></h3>
                         <p><?php echo htmlspecialchars(substr($service['description'], 0, 100)) . '...'; ?></p>
                         <p><strong>Rp <?php echo number_format($service['price'], 0, ',', '.'); ?></strong></p>
@@ -61,6 +69,14 @@ $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="script.js"></script>
+    <script>
+        $(document).ready(function() {
+            AOS.init({
+                duration: 1000,
+                once: true
+            });
+        });
+    </script>
 </body>
 </html>
+

@@ -1,61 +1,92 @@
 <?php
 session_start();
 require_once 'config.php';
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+
+// Check if the user is logged in and is an admin
+if (!isset($_SESSION['user_id']) || !$_SESSION['is_admin']) {
     header('Location: auth.php');
     exit();
 }
 
-// Handle CRUD operations
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    $table = $_POST['table'] ?? '';
+// Fetch various statistics
+$stmt = $pdo->query("SELECT COUNT(*) FROM appointments");
+$totalAppointments = $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE is_admin = 0");
+$totalCustomers = $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT COUNT(*) FROM services");
+$totalServices = $stmt->fetchColumn();
+
+$stmt = $pdo->query("SELECT SUM(price) FROM appointments WHERE status = 'confirmed'"); // Updated: SUM(price) instead of SUM(total_revenue)
+$totalRevenue = $stmt->fetchColumn();
+
+// Fetch recent appointments
+$stmt = $pdo->query("SELECT a.*, u.username, s.name as service_name 
+                   FROM appointments a 
+                   JOIN users u ON a.user_id = u.id 
+                   JOIN services s ON a.service_id = s.id 
+                   ORDER BY a.appointment_date DESC, a.appointment_time DESC LIMIT 5"); // Updated: added ORDER BY appointment_time
+$recentAppointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch top services
+$stmt = $pdo->query("SELECT s.name, COUNT(*) as count 
+                   FROM appointments a 
+                   JOIN services s ON a.service_id = s.id 
+                   GROUP BY s.id 
+                   ORDER BY count DESC LIMIT 5");
+$topServices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Function to get content based on section
+function getSectionContent($section) {
+    global $pdo;
     
-    switch ($action) {
-        case 'delete':
-            $id = $_POST['id'];
-            $stmt = $pdo->prepare("DELETE FROM $table WHERE id = ?");
-            $stmt->execute([$id]);
-            header('Location: admin.php?table=' . $table);
-            exit;
-            break;
+    switch ($section) {
+        case 'appointments':
+            $stmt = $pdo->query("SELECT a.*, u.username, s.name as service_name
+                                 FROM appointments a 
+                                 JOIN users u ON a.user_id = u.id 
+                                 JOIN services s ON a.service_id = s.id 
+                                 ORDER BY a.appointment_date DESC, a.appointment_time DESC LIMIT 20"); // Updated: added ORDER BY appointment_time
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        case 'customers':
+            $stmt = $pdo->query("SELECT * FROM users WHERE is_admin = 0 ORDER BY created_at DESC LIMIT 20");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        case 'services':
+            $stmt = $pdo->query("SELECT * FROM services ORDER BY category_id, name");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        case 'reports':
+            // You can add more complex reports here
+            $revenueByMonth = $pdo->query("SELECT DATE_FORMAT(appointment_date, '%Y-%m') as month, SUM(price) as revenue 
+                                          FROM appointments 
+                                          WHERE status = 'confirmed' 
+                                          GROUP BY DATE_FORMAT(appointment_date, '%Y-%m') 
+                                          ORDER BY month DESC LIMIT 12")->fetchAll(PDO::FETCH_ASSOC); // Updated: appointment_date instead of completed_at
             
-        case 'add':
-        case 'edit':
-            $id = $_POST['id'] ?? null;
-            $fields = $_POST;
-            unset($fields['action'], $fields['table'], $fields['id']);
+            $topCustomers = $pdo->query("SELECT u.username, COUNT(*) as visit_count, SUM(a.price) as total_spent 
+                                         FROM appointments a 
+                                         JOIN users u ON a.user_id = u.id 
+                                         WHERE a.status = 'confirmed' 
+                                         GROUP BY a.user_id 
+                                         ORDER BY total_spent DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC); // Updated: a.price instead of a.total_revenue
             
-            if ($action === 'add') {
-                $columns = implode(', ', array_keys($fields));
-                $values = implode(', ', array_fill(0, count($fields), '?'));
-                $stmt = $pdo->prepare("INSERT INTO $table ($columns) VALUES ($values)");
-                $stmt->execute(array_values($fields));
-            } else {
-                $set = implode('=?, ', array_keys($fields)) . '=?';
-                $stmt = $pdo->prepare("UPDATE $table SET $set WHERE id=?");
-                $stmt->execute([...array_values($fields), $id]);
-            }
-            header('Location: admin.php?table=' . $table);
-            exit;
-            break;
+            return ['revenueByMonth' => $revenueByMonth, 'topCustomers' => $topCustomers];
+        
+        default:
+            return [];
     }
 }
 
-$currentTable = $_GET['table'] ?? 'appointments';
+$currentSection = isset($_GET['section']) ? $_GET['section'] : 'dashboard';
+$sectionContent = getSectionContent($currentSection);
 
-// Fetch table data
-$stmt = $pdo->query("SELECT * FROM $currentTable");
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch related data for dropdowns
-$categories = $pdo->query("SELECT * FROM categories")->fetchAll(PDO::FETCH_ASSOC);
-$services = $pdo->query("SELECT * FROM services")->fetchAll(PDO::FETCH_ASSOC);
-$users = $pdo->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -63,395 +94,400 @@ $users = $pdo->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
-            --tan-50: #faf8f2;
-            --tan-100: #f3eee1;
-            --tan-200: #e5dbc3;
-            --tan-300: #d4c39d;
-            --tan-400: #c7ad7f;
-            --tan-500: #b69159;
-            --tan-600: #a87e4e;
-            --tan-700: #8c6642;
-            --tan-800: #72533a;
-            --tan-900: #5d4431;
-            --tan-950: #312319;
+            --primary-color: #b69159;
+            --secondary-color: #a87e4e;
+            --accent-color: #d4c39d;
+            --background-color: #faf8f2;
+            --text-color: #5d4431;
+            --sidebar-width: 250px;
         }
-
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
         }
-
+        
         body {
-            background: var(--tan-100);
-            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
-
-        .dashboard {
+        
+        .admin-container {
             display: flex;
             min-height: 100vh;
         }
-
-        .sidebar {
-            width: 250px;
-            background: var(--tan-50);
+        
+        .admin-nav {
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
             padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
         }
-
-        .main-content {
-            flex: 1;
-            padding: 20px;
-        }
-
-        .logo {
-            color: var(--tan-900);
+        
+        .admin-nav h1 {
             font-size: 24px;
-            font-weight: 600;
             margin-bottom: 30px;
             text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            color: var(--tan-800);
-            text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: all 0.3s;
+        
+        .admin-nav ul {
+            list-style-type: none;
         }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: var(--tan-200);
-            color: var(--tan-900);
+        
+        .admin-nav ul li {
+            margin-bottom: 15px;
         }
-
-        .nav-link i {
-            margin-right: 10px;
-            width: 20px;
-        }
-
-        .content-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .content-title {
-            color: var(--tan-900);
-            font-size: 24px;
-        }
-
-        .btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: var(--tan-500);
+        
+        .admin-nav ul li a {
             color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
         }
-
-        .btn-primary:hover {
-            background: var(--tan-600);
+        
+        .admin-nav ul li a:hover, .admin-nav ul li a.active {
+            background-color: rgba(255,255,255,0.2);
         }
-
-        .table-container {
-            background: white;
+        
+        .admin-nav ul li a i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .admin-content {
+            flex-grow: 1;
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+        }
+        
+        h2 {
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            font-size: 28px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+        
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background-color: white;
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
         }
-
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card h3 {
+            color: var(--primary-color);
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card p {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        
+        .dashboard-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .chart {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .chart h3 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
         }
-
-        th, td {
-            padding: 12px;
+        
+        table th, table td {
+            padding: 10px;
             text-align: left;
-            border-bottom: 1px solid var(--tan-200);
+            border-bottom: 1px solid #eee;
         }
-
-        th {
-            color: var(--tan-900);
-            font-weight: 600;
-            background: var(--tan-50);
+        
+        table th {
+            background-color: var(--accent-color);
+            color: var(--text-color);
         }
-
-        td {
-            color: var(--tan-800);
+        
+        ul {
+            list-style-type: none;
         }
-
-        .action-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            margin-right: 5px;
-        }
-
-        .edit-btn {
-            background: var(--tan-300);
-            color: var(--tan-900);
-        }
-
-        .delete-btn {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
+        
+        ul li {
             display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
         }
-
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--tan-900);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--tan-300);
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--tan-500);
-        }
-
-        .modal-footer {
-            margin-top: 20px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+        
+        @media (max-width: 768px) {
+            .admin-nav {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            
+            .admin-content {
+                margin-left: 0;
+            }
+            
+            .dashboard-stats, .dashboard-charts {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard">
-        <div class="sidebar">
-            <div class="logo">
-                <i class="fas fa-spa"></i> Larissa Admin
-            </div>
-            <nav>
-                <a href="?table=appointments" class="nav-link <?php echo $currentTable === 'appointments' ? 'active' : ''; ?>">
-                    <i class="fas fa-calendar-alt"></i> Appointments
-                </a>
-                <a href="?table=services" class="nav-link <?php echo $currentTable === 'services' ? 'active' : ''; ?>">
-                    <i class="fas fa-concierge-bell"></i> Services
-                </a>
-                <a href="?table=categories" class="nav-link <?php echo $currentTable === 'categories' ? 'active' : ''; ?>">
-                    <i class="fas fa-tags"></i> Categories
-                </a>
-                <a href="?table=users" class="nav-link <?php echo $currentTable === 'users' ? 'active' : ''; ?>">
-                    <i class="fas fa-users"></i> Users
-                </a>
-                <a href="logout.php" class="nav-link">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </nav>
-        </div>
-        
-        <div class="main-content">
-            <div class="content-header">
-                <h1 class="content-title">Manage <?php echo ucfirst($currentTable); ?></h1>
-                <button class="btn btn-primary" onclick="showAddModal()">
-                    <i class="fas fa-plus"></i> Add New
-                </button>
-            </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <?php
-                            if (!empty($rows)) {
-                                foreach (array_keys($rows[0]) as $column) {
-                                    echo "<th>" . ucfirst($column) . "</th>";
-                                }
-                                echo "<th>Actions</th>";
-                            }
-                            ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($rows as $row): ?>
-                        <tr>
-                            <?php foreach ($row as $value): ?>
-                                <td><?php echo htmlspecialchars($value); ?></td>
+    <div class="admin-container">
+        <nav class="admin-nav">
+            <h1>Larissa Salon Studio</h1>
+            <ul>
+                <li><a href="?section=dashboard" class="<?php echo $currentSection === 'dashboard' ? 'active' : ''; ?>"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="?section=appointments" class="<?php echo $currentSection === 'appointments' ? 'active' : ''; ?>"><i class="fas fa-calendar-check"></i> Appointments</a></li>
+                <li><a href="?section=customers" class="<?php echo $currentSection === 'customers' ? 'active' : ''; ?>"><i class="fas fa-users"></i> Customers</a></li>
+                <li><a href="?section=services" class="<?php echo $currentSection === 'services' ? 'active' : ''; ?>"><i class="fas fa-concierge-bell"></i> Services</a></li>
+                <li><a href="?section=reports" class="<?php echo $currentSection === 'reports' ? 'active' : ''; ?>"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </nav>
+        <main class="admin-content">
+            <?php if ($currentSection === 'dashboard'): ?>
+                <section id="dashboard">
+                    <h2>Dashboard</h2>
+                    <div class="dashboard-stats">
+                        <div class="stat-card">
+                            <h3>Total Appointments</h3>
+                            <p><?php echo $totalAppointments; ?></p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Customers</h3>
+                            <p><?php echo $totalCustomers; ?></p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Services</h3>
+                            <p><?php echo $totalServices; ?></p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Revenue</h3>
+                            <p>Rp <?php echo number_format($totalRevenue, 0, ',', '.'); ?></p>
+                        </div>
+                    </div>
+                    <div class="dashboard-charts">
+                        <div class="chart">
+                            <h3>Recent Appointments</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Customer</th>
+                                        <th>Service</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($recentAppointments as $appointment): ?>
+                                    <tr>
+                                        <td><?php echo date('Y-m-d H:i', strtotime($appointment['appointment_date'])); ?></td>
+                                        <td><?php echo htmlspecialchars($appointment['username']); ?></td>
+                                        <td><?php echo htmlspecialchars($appointment['service_name']); ?></td>
+                                        <td><?php echo ucfirst($appointment['status']); ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="chart">
+                            <h3>Top Services</h3>
+                            <ul>
+                                <?php foreach ($topServices as $service): ?>
+                                <li>
+                                    <span><?php echo htmlspecialchars($service['name']); ?></span>
+                                    <span><?php echo $service['count']; ?> bookings</span>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            <?php elseif ($currentSection === 'appointments'): ?>
+                <section id="appointments">
+                    <h2>Appointments</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Customer</th>
+                                <th>Service</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($sectionContent as $appointment): ?>
+                            <tr>
+                                <td><?php echo date('Y-m-d', strtotime($appointment['appointment_date'])); ?></td>
+                                <td><?php echo date('H:i', strtotime($appointment['appointment_time'])); ?></td>  <!-- Updated: Display appointment time -->
+                                <td><?php echo htmlspecialchars($appointment['username']); ?></td>
+                                <td><?php echo htmlspecialchars($appointment['service_name']); ?></td>
+                                <td>Rp <?php echo number_format($appointment['price'], 0, ',', '.'); ?></td>
+                                <td><?php echo ucfirst($appointment['status']); ?></td>
+                                <td>
+                                    <a href="edit-appointment.php?id=<?php echo $appointment['id']; ?>" class="btn btn-sm btn-primary">Edit</a>
+                                    <a href="delete-appointment.php?id=<?php echo $appointment['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this appointment?')">Delete</a>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
-                            <td>
-                                <button class="action-btn edit-btn" onclick="showEditModal(<?php echo htmlspecialchars(json_encode($row)); ?>)">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn delete-btn" onclick="deleteItem(<?php echo $row['id']; ?>)">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                        </tbody>
+                    </table>
+                </section>
+            <?php elseif ($currentSection === 'customers'): ?>
+                <section id="customers">
+                    <h2>Customers</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Registered On</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($sectionContent as $customer): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($customer['username']); ?></td>
+                                <td><?php echo htmlspecialchars($customer['full_name']); ?></td>
+                                <td><?php echo htmlspecialchars($customer['email']); ?></td>
+                                <td><?php echo htmlspecialchars($customer['phone']); ?></td>
+                                <td><?php echo date('Y-m-d', strtotime($customer['created_at'])); ?></td>
+                                <td>
+                                    <a href="edit-customer.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-primary">Edit</a>
+                                    <a href="delete-customer.php?id=<?php echo $customer['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this customer?')">Delete</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </section>
+            <?php elseif ($currentSection === 'services'): ?>
+                <section id="services">
+                    <h2>Services</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($sectionContent as $service): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($service['name']); ?></td>
+                                <td><?php echo htmlspecialchars($service['category_id']); ?></td>
+                                <td><?php echo htmlspecialchars(substr($service['description'], 0, 50)) . '...'; ?></td>
+                                <td>Rp <?php echo number_format($service['price'], 0, ',', '.'); ?></td>
+                                <td><?php echo $service['duration']; ?> minutes</td>
+                                <td>
+                                    <a href="edit-service.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-primary">Edit</a>
+                                    <a href="delete-service.php?id=<?php echo $service['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this service?')">Delete</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </section>
+            <?php elseif ($currentSection === 'reports'): ?>
+                <section id="reports">
+                    <h2>Reports</h2>
+                    <div class="chart">
+                        <h3>Monthly Revenue</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($sectionContent['revenueByMonth'] as $revenue): ?>
+                                <tr>
+                                    <td><?php echo $revenue['month']; ?></td>
+                                    <td>Rp <?php echo number_format($revenue['revenue'], 0, ',', '.'); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="chart">
+                        <h3>Top Customers</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Visit Count</th>
+                                    <th>Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($sectionContent['topCustomers'] as $customer): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($customer['username']); ?></td>
+                                    <td><?php echo $customer['visit_count']; ?></td>
+                                    <td>Rp <?php echo number_format($customer['total_spent'], 0, ',', '.'); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            <?php endif; ?>
+        </main>
     </div>
-
-    <!-- Modal for Add/Edit -->
-    <div id="formModal" class="modal">
-        <div class="modal-content">
-            <h2 id="modalTitle">Add New Record</h2>
-            <form id="recordForm" method="POST">
-                <input type="hidden" name="action" id="formAction" value="add">
-                <input type="hidden" name="table" value="<?php echo $currentTable; ?>">
-                <input type="hidden" name="id" id="recordId">
-                
-                <?php
-                if (!empty($rows)) {
-                    $columns = array_keys($rows[0]);
-                    foreach ($columns as $column) {
-                        if ($column !== 'id' && $column !== 'created_at') {
-                            echo '<div class="form-group">';
-                            echo '<label for="' . $column . '">' . ucfirst($column) . '</label>';
-                            
-                            if ($column === 'category_id') {
-                                echo '<select name="' . $column . '" id="' . $column . '">';
-                                foreach ($categories as $category) {
-                                    echo '<option value="' . $category['id'] . '">' . $category['name'] . '</option>';
-                                }
-                                echo '</select>';
-                            } elseif ($column === 'service_id') {
-                                echo '<select name="' . $column . '" id="' . $column . '">';
-                                foreach ($services as $service) {
-                                    echo '<option value="' . $service['id'] . '">' . $service['name'] . '</option>';
-                                }
-                                echo '</select>';
-                            } elseif ($column === 'user_id') {
-                                echo '<select name="' . $column . '" id="' . $column . '">';
-                                foreach ($users as $user) {
-                                    echo '<option value="' . $user['id'] . '">' . $user['username'] . '</option>';
-                                }
-                                echo '</select>';
-                            } elseif ($column === 'status') {
-                                echo '<select name="' . $column . '" id="' . $column . '">';
-                                echo '<option value="pending">Pending</option>';
-                                echo '<option value="confirmed">Confirmed</option>';
-                                echo '<option value="cancelled">Cancelled</option>';
-                                echo '</select>';
-                            } elseif ($column === 'password') {
-                                echo '<input type="password" name="' . $column . '" id="' . $column . '">';
-                            } elseif ($column === 'description') {
-                                echo '<textarea name="' . $column . '" id="' . $column . '" rows="3"></textarea>';
-                            } else {
-                                echo '<input type="text" name="' . $column . '" id="' . $column . '">';
-                            }
-                            
-                            echo '</div>';
-                        }
-                    }
-                }
-                ?>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn" onclick="hideModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function showAddModal() {
-            document.getElementById('modalTitle').textContent = 'Add New Record';
-            document.getElementById('formAction').value = 'add';
-            document.getElementById('recordId').value = '';
-            document.getElementById('recordForm').reset();
-            document.getElementById('formModal').classList.add('active');
-        }
-
-        function showEditModal(data) {
-            document.getElementById('modalTitle').textContent = 'Edit Record';
-            document.getElementById('formAction').value = 'edit';
-            document.getElementById('recordId').value = data.id;
-            
-            // Fill form with data
-            for (let key in data) {
-                const input = document.getElementById(key);
-                if (input) {
-                    input.value = data[key];
-                }
-            }
-            
-            document.getElementById('formModal').classList.add('active');
-        }
-
-        function hideModal() {
-            document.getElementById('formModal').classList.remove('active');
-        }
-
-        function deleteItem(id) {
-            if (confirm('Are you sure you want to delete this item?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="table" value="<?php echo $currentTable; ?>">
-                    <input type="hidden" name="id" value="${id}">
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('formModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideModal();
-            }
-        });
-    </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="scripts/admin.js"></script>
 </body>
 </html>
+
