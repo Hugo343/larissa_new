@@ -8,7 +8,8 @@
                 <li><a href="index.php">Home</a></li>
                 <li><a href="services.php">Services</a></li>
                 <li><a href="booking.php">Book Now</a></li>
-                <li><a href="#contact">Contact  |</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li> | </li>
                 <?php if (isset($_SESSION['user_id'])): ?>
         <li><a href="dashboard.php"><?php echo htmlspecialchars($_SESSION['username']); ?></a></li>
         <li><a href="logout.php">Logout</a></li>
