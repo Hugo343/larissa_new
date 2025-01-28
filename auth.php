@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 require_once 'config.php';
@@ -416,8 +415,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if (response.redirect) {
                                 window.location.href = response.redirect;
                             } else {
-                                $alert.removeClass('alert-danger').addClass('alert-success').text(response.message).fadeIn();
+                                // Show pop-up for successful registration
+                                alert(response.message);
                                 $form[0].reset();
+                                // Switch to login form after successful registration
+                                $('.switch-mode[data-mode="login"]').click();
                             }
                         } else {
                             $alert.removeClass('alert-success').addClass('alert-danger').text(response.error).fadeIn();
@@ -446,3 +448,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 </body>
 </html>
+
