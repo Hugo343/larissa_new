@@ -126,82 +126,130 @@ if (!$aboutUs) {
         </div>
     </section>
 
-    <section class="testimonials" id="testimonials" style="padding: 40px 0; background-color: #f8f8f8;">
+    <section class="testimonials" id="testimonials" style="padding: 80px 0; background-color: #f8f8f8;">
     <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 15px;">
-        <h2 style="text-align: center; font-size: 28px; margin-bottom: 30px; color: #333;">What Our Clients Say</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <h2 style="text-align: center; font-size: 36px; margin-bottom: 50px; color: #333; position: relative;">
+            What Our Clients Say
+            <span style="display: block; width: 50px; height: 3px; background-color: #b69159; margin: 15px auto 0;"></span>
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
             <?php 
             $testimonials = [
                 [
                     'id' => 1,
                     'name' => 'Sarah Johnson',
                     'position' => 'Regular Client',
-                    'content' => 'Amazing service! The staff is very professional and friendly.',
-                    'image' => 'client1.jpg'
+                    'content' => 'Amazing service! The staff is very professional and friendly. I always leave feeling beautiful and confident.',
+                    'image' => 'client1.jpg',
+                    'rating' => 5
                 ],
                 [
                     'id' => 2,
                     'name' => 'Michael Chen',
                     'position' => 'Loyal Customer',
-                    'content' => 'Best salon in town! Always satisfied with their service.',
-                    'image' => 'client2.jpg'
+                    'content' => 'Best salon in town! Always satisfied with their service. The attention to detail is unmatched.',
+                    'image' => 'client2.jpg',
+                    'rating' => 5
                 ],
                 [
                     'id' => 3,
                     'name' => 'Emily Rodriguez',
                     'position' => 'VIP Member',
-                    'content' => 'Excellent attention to detail and great atmosphere.',
-                    'image' => 'client3.jpg'
+                    'content' => 'Excellent attention to detail and great atmosphere. It\'s my go-to place for all beauty needs.',
+                    'image' => 'client3.jpg',
+                    'rating' => 5
                 ]
             ];
             
             foreach ($testimonials as $testimonial): ?>
                 <div style="background: white; 
-                            border-radius: 8px; 
-                            padding: 15px; 
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+                            border-radius: 12px; 
+                            padding: 25px; 
+                            box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
                             display: flex; 
                             flex-direction: column; 
-                            gap: 10px;">
+                            gap: 15px;
+                            transition: all 0.3s ease;
+                            cursor: pointer;"
+                     onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 15px 30px rgba(182,145,89,0.2)';"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(0,0,0,0.1)';">
                     
                     <!-- Profile Section -->
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
                         <img src="images/testimonials/<?php echo $testimonial['id']; ?>.jpeg" 
                              alt="<?php echo htmlspecialchars($testimonial['name']); ?>"
-                             style="width: 40px; 
-                                    height: 40px; 
+                             style="width: 70px; 
+                                    height: 70px; 
                                     border-radius: 50%; 
                                     object-fit: cover; 
-                                    border: 2px solid #b69159;">
+                                    border: 3px solid #b69159;
+                                    transition: all 0.3s ease;"
+                             onmouseover="this.style.transform='scale(1.1)';"
+                             onmouseout="this.style.transform='scale(1)';">
                         
                         <div style="display: flex; flex-direction: column;">
                             <h4 style="margin: 0; 
-                                       font-size: 14px; 
+                                       font-size: 18px; 
                                        color: #333; 
                                        font-weight: 600;">
                                 <?php echo htmlspecialchars($testimonial['name']); ?>
                             </h4>
-                            <span style="font-size: 12px; 
-                                       color: #666;">
+                            <span style="font-size: 14px; 
+                                       color: #b69159;
+                                       margin-top: 5px;">
                                 <?php echo htmlspecialchars($testimonial['position']); ?>
                             </span>
+                            <div style="margin-top: 5px;">
+                                <?php for ($i = 0; $i < $testimonial['rating']; $i++): ?>
+                                    <span style="color: #FFD700; font-size: 16px;">★</span>
+                                <?php endfor; ?>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Testimonial Content -->
                     <div style="position: relative;">
                         <p style="margin: 0; 
-                                 font-size: 13px; 
-                                 line-height: 1.5; 
+                                 font-size: 16px; 
+                                 line-height: 1.6; 
                                  color: #555; 
                                  font-style: italic;">
                             "<?php echo htmlspecialchars($testimonial['content']); ?>"
                         </p>
                     </div>
+                    
+                    <!-- Decorative Quote -->
+                    <div style="position: absolute; top: 10px; right: 20px; font-size: 60px; color: rgba(182,145,89,0.1); font-family: Georgia, serif;">
+                        "
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    const testimonials = document.querySelectorAll('.testimonials > div > div');
+    testimonials.forEach((testimonial, index) => {
+        testimonial.style.animation = `fadeInUp 0.5s ease-out ${index * 0.1}s forwards`;
+        testimonial.style.opacity = '0';
+    });
+});
+</script>
+
+<style>
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 </section>
 <section class="location" id="location" style="padding: 60px 0; background-color: #f8f8f8;">
     <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 15px;">
